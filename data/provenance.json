@@ -1,0 +1,11 @@
+{
+  "ontology": "http://purl.obolibrary.org/obo/aism.owl",
+  "version": "http://purl.obolibrary.org/obo/aism/releases/2026-02-14/aism.owl",
+  "downloaded": "2026-10-07",
+  "downloadUrl": "https://raw.githubusercontent.com/insect-morphology/aism/master/aism.owl",
+  "sha256": "0aee81bbc9b9d963765dc470488e97ccae05143f831eeec6c1b97dea0cc56dc5",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "AISM contributors, Ontology for the Anatomy of the Insect SkeletoMuscular system",
+  "homepage": "https://github.com/insect-morphology/aism",
+  "notes": "Unmodified merged OWL snapshot, including imported vocabulary. No owl:imports declarations. The vendored bytes and checksum, not the mutable download URL, fix this example dataset."
+}

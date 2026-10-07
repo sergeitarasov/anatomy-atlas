@@ -1,0 +1,25 @@
+name: Build and test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: shasum -a 256 -c data/SHA256SUMS
+      - run: ./mvnw -B package
+      - name: AISM integration checks
+        run: |
+          java -Xmx3g -jar target/anatomy-atlas-0.1.0.jar > server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8787/api/status | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)["state"] != "ready")'; then break; fi
+            sleep 2
+          done
+          python3 scripts/smoke_test.py

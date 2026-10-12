@@ -40,6 +40,9 @@ class QueryEngineTest {
             assertEquals(Set.of("https://example.org/LegPart"), ids(all,"equivalents"));
             var direct = e.query("'part of' some 'insect leg'", true, false);
             assertEquals(Set.of("https://example.org/Tibia", "https://example.org/Tarsus"), ids(direct,"subclasses"));
+            assertEquals(ids(all,"imageMatches"), ids(direct,"imageMatches"));
+            assertEquals(Set.of("https://example.org/Tibia", "https://example.org/HindTibia", "https://example.org/Tarsus", "https://example.org/LegPart"), ids(direct,"imageMatches"));
+            assertEquals(Set.of("https://example.org/Tibia", "https://example.org/HindTibia"), ids(e.query("tibia",true,false),"imageMatches"));
             assertEquals(Set.of("https://example.org/Segment", "https://example.org/LegPart"), ids(e.query("tibia",true,false),"superclasses"));
         }
     }
@@ -71,6 +74,28 @@ class QueryEngineTest {
         var ontology = manager.loadOntologyFromOntologyDocument(new StringDocumentSource(ONTOLOGY.replace("SubClassOf(:Tibia :Segment)", "SubClassOf(:Tibia :Segment) DisjointClasses(:Tibia :Tarsus)")));
         try(var e = new QueryEngine(ontology)) {
             assertEquals(false,e.query("tibia and Tarsus",false,false).get("satisfiable"));
+            assertTrue(ids(e.query("tibia and Tarsus",false,true),"imageMatches").isEmpty());
         }
     }
+    @Test void termSearchAndDetailsPreserveBiologicalContext() throws Exception {
+        var manager = OWLManager.createOWLOntologyManager();
+        var ontology = manager.loadOntologyFromOntologyDocument(new StringDocumentSource(ONTOLOGY));
+        var df = manager.getOWLDataFactory();
+        manager.addAxiom(ontology, df.getOWLAnnotationAssertionAxiom(
+            df.getOWLAnnotationProperty(org.semanticweb.owlapi.model.IRI.create("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")),
+            org.semanticweb.owlapi.model.IRI.create("https://example.org/Tibia"), df.getOWLLiteral("shin segment")));
+        try (var e = new QueryEngine(ontology)) {
+            assertEquals("tibia", e.search("shin segment", "class").get(0).get("label"));
+            assertTrue(e.search("shin segment", "property").isEmpty());
+            assertEquals("'tibia'", e.search("tibia", "class").get(0).get("expression"));
+            var detail = e.detail("https://example.org/Tibia");
+            assertEquals("tibia", detail.get("label"));
+            assertEquals(1, ((List<?>)detail.get("relationships")).size());
+            assertEquals(2, ((List<?>)detail.get("parents")).size());
+            assertEquals(1, ((List<?>)detail.get("children")).size());
+            assertFalse(e.detail("https://example.org/part_of").containsKey("parents"));
+            assertThrows(IllegalArgumentException.class, () -> e.detail("https://example.org/missing"));
+        }
+    }
+
 }

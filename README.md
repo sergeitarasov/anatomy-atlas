@@ -1,6 +1,6 @@
 # Anatomy Atlas — interactive AISM reasoning
 
-A local, image-free prototype of a Protégé-style DL Query panel: enter a Manchester class expression and inspect inferred **subclasses**, **superclasses**, and **equivalent classes**. Uses the real **Whelk 1.2.1** reasoner and **OWL API 4.5.22** Manchester parser. AISM is bundled as an unmodified, checksummed ontology snapshot.
+A local, image-free anatomy explorer with a guided question builder and a Protégé-style DL Query panel: enter a Manchester class expression and inspect inferred **subclasses**, **superclasses**, and **equivalent classes**. Uses the real **Whelk 1.2.1** reasoner and **OWL API 4.5.22** Manchester parser. AISM is bundled as an unmodified, checksummed ontology snapshot.
 
 ## Run locally
 
@@ -14,6 +14,16 @@ cd /Users/taravser/GitHub/anatomy-atlas
 Open **http://127.0.0.1:8787**. Allow a few seconds for ontology loading and classification; the page displays progress. Stop with **Ctrl+C** in the terminal. For another port: `PORT=8788 ./run.sh`. Set `JAVA_HOME` if you need to select a particular JDK.
 
 After cloning elsewhere, run `./run.sh` from that checkout. This command verifies the ontology checksum, builds, runs unit tests, and starts the service. No global Maven installation or Python environment is needed.
+
+## Learn by exploring
+
+The default **Guided question** mode lets you choose “are a kind of”, “are part of”, or “have a part that is”, then select an anatomical term. It shows the Manchester expression and explains `some` as “at least one”. Guided requests use the selected term IRI. The Manchester editor retains readable, unambiguous labels; ambiguous labels use IRIs.
+
+Type in the structure field, Manchester editor, or anatomy explorer to see suggestions with definitions and identifiers. Search includes ontology synonyms; choosing a synonym selects the canonical term. Use arrow keys and Enter to select, Escape to dismiss. After `some`, the editor suggests classes; before an existing `some`, it suggests properties. Selecting a property in an empty expression also inserts `some`. Operator buttons insert at the cursor; Group wraps a selection in parentheses. Focus or hover explains each operator.
+
+Term details separate **inferred kind-of hierarchy** from **directly asserted existential relationships**. The latter are not complete inherited relationships or proof explanations. Definitions are quoted verbatim from the ontology snapshot; absent definitions are labelled as absent. Synonym types are pooled for search and explicitly not presented as equivalent-class assertions.
+
+Three short guided explorations teach leg anatomy, kind-of versus part-of, and combining conditions. Recent successful questions are retained for the current page session (up to eight). Switching a supported simple question back to guided mode works automatically. More complex expressions remain in the editor, with an explanation, rather than being discarded. “Immediate matches only” is the direct-hierarchy option.
 
 ## Queries to try
 
@@ -42,7 +52,7 @@ The ontology label is **insect leg**, not simply **leg**. Labels are case-sensit
 - **Run query** or **Cmd/Ctrl+Enter** updates all three result columns.
 - **Direct only** limits strict subclass/superclass results to immediate inferred neighbours.
 - **Include owl:Thing / owl:Nothing** shows the built-in classes, hidden by default.
-- Click a result to query that class; hover for its definition.
+- Click a result to open its definition, synonyms, inferred immediate parents/children and directly asserted anatomical relationships. This preserves the current question.
 - Equivalent-class results include a named query itself, following OWL API node semantics. Anonymous expressions may have no named equivalent.
 - Unsatisfiable expressions show a warning, including when `owl:Nothing` is hidden.
 
@@ -75,7 +85,7 @@ Unit tests cover inferred existential membership, strict/direct hierarchy result
 - `data/aism.owl`, `data/provenance.json`, `data/SHA256SUMS`: fixed input and provenance.
 - `scripts/smoke_test.py`: AISM integration checks.
 
-`GET /api/status` returns loading state, version and coverage. `GET /api/terms?q=tibia` finds ontology terms. `POST /api/query` accepts JSON:
+`GET /api/status` returns loading state, version and coverage. `GET /api/terms?q=tibia&kind=class` searches labels, identifiers and synonyms (optional kind: class/property). `GET /api/term?iri=...` returns a term definition, synonyms, source, inferred immediate parents/children, and directly asserted named-target existential relationships. `POST /api/query` accepts JSON:
 
 ```json
 {"expression":"'part of' some 'insect leg'","direct":false,"builtins":false}
@@ -88,3 +98,42 @@ The response contains `subclasses`, `superclasses`, `equivalents`, `satisfiable`
 The [AISM ontology](https://obofoundry.org/ontology/aism.html), by the AISM contributors, is distributed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This repository preserves the original merged OWL bytes and annotations, including imported vocabulary attribution. The snapshot reports version **2026-02-14**, 8,614 classes and 31,886 logical axioms. See `data/provenance.json` for the retrieval source, date and checksum. This merged file has no external import declarations; no ontology imports are silently dropped.
 
 [Whelk](https://github.com/INCATools/whelk) is BSD-3-Clause licensed. See Balhoff & Mungall, [Whelk: An OWL EL+RL Reasoner Enabling New Use Cases](https://doi.org/10.4230/TGDK.2.2.7). The [browser demonstration](https://github.com/balhoff/whelk-web) informed the architecture; this prototype uses the JVM OWL API integration. Dependency licenses remain with their authors. No dependency binaries or build caches need to be committed.
+
+## Annotated images (pilot)
+
+Open `/images.html` from the running atlas. Load an `anatomy-atlas` v1 JSON export from Label Studio. Images and per-instance binary masks remain in the browser; selection retrieves term definitions from the existing ontology API. Filter masks by term, synonym or instance name, toggle visibility, adjust opacity, and click repeatedly to cycle overlapping masks. The export records its ontology snapshot; current atlas lookup is shown separately from the exported definition.
+
+The Label Studio integration and one-command exporter are documented in `/Users/taravser/GitHub/label-studio/ONTOLOGY-INTEGRATION.md`. This is an image/term bridge, not yet a Phenoscript `.yphs` editor or synchronizer. Exported entity IDs distinguish specimen parts from ontology classes; cross-image entity matching remains explicit future work.
+
+## Query-linked Label Studio masks
+
+The main page now includes the Grebennikovius image and an interactive mask viewer. Annotation 10 (six masks, five classes) is selected initially; annotation 9 remains separately available. The original export in `label-studio-export/` is unchanged. Annotation notes and the explicitly named unreviewed demonstration region are retained.
+
+Run a question, then scroll to **See the anatomy**. `pronotum` selects two masks; `tibia` selects the metatibia mask; `antenna` selects none. Matching joins full ontology IRIs against **all inferred subclasses plus equivalent classes**, including the queried named class itself. Superclasses do not automatically select masks. “Immediate matches only” changes the hierarchy lists, not image membership. Contradictory queries have no image matches. Whelk's existing incomplete axiom coverage still applies.
+
+Click a coloured region (repeated clicks cycle overlapping masks), or a region in the list, to read its ontology definition and hierarchy. The term panel offers **Show masks of this exact term**. Use **Return to query matches** to restore the inferred selection. Per-region visibility, faint nonmatches, opacity, zoom, drag-to-pan and fit controls are available. A failed query retains and explicitly labels the previous image selection.
+
+The portable bundle is `src/main/resources/web/atlas/`: a manifest, normalized photograph and one binary PNG per mask. It includes source checksums, ontology version/checksum, project/task/annotation/region IDs, original image reference, review notes and full term IRIs. PNG masks preserve overlaps and same-term regions independently; no specimen OWL assertions are created. The file named `Grebennikovius.png` in the supplied export actually contains JPEG bytes; the generated image is a genuine PNG.
+
+To import another **single-task, single-image export with the same Label Studio controls** (`mask` brush labels and `anatomy` taxonomy joined by region ID), use Python 3 and Pillow:
+
+```sh
+python3 -m venv .venv-import
+.venv-import/bin/pip install 'Pillow>=10,<14'
+.venv-import/bin/python scripts/import_masks.py \
+  label-studio-export/project-3-at-2026-10-08-13-58-82079738.json \
+  --image label-studio-export/Grebennikovius.png \
+  --ontology data/aism.owl \
+  --output /tmp/anatomy-atlas-new-bundle
+```
+
+Choose a new output directory: the importer refuses overwrites. It validates RLE lengths, dimensions, zero rotation, one ontology IRI per mask, and nonempty geometry; reports unknown IRIs; and ignores duplicate geometry in taxonomy/metadata records. Review the generated bundle before replacing the served `web/atlas` directory and rebuilding. This prototype ships one dataset; arbitrary browser uploads, multiple-image galleries and custom ontology sessions are not implemented yet. Static assets are portable to GitHub Pages, but the current localhost server still requires a separately deployed backend and cross-origin configuration for public hosting.
+
+Checks:
+
+```sh
+./mvnw test
+.venv-import/bin/python scripts/test_import_masks.py
+python3 scripts/smoke_test.py
+python3 scripts/smoke_masks.py
+```

@@ -1,0 +1,194 @@
+{
+  "format": "anatomy-atlas-masks",
+  "version": 1,
+  "ontologyVersion": "http://purl.obolibrary.org/obo/aism/releases/2026-02-14/aism.owl",
+  "ontologySha256": "0aee81bbc9b9d963765dc470488e97ccae05143f831eeec6c1b97dea0cc56dc5",
+  "sourceExport": "project-3-at-2026-10-08-13-58-82079738.json",
+  "sourceSha256": "55f71cc67af62663953a2b33d13ce6c7200e228656686ca4cf7858339d6c7efa",
+  "unknownTerms": [],
+  "images": [
+    {
+      "id": "567a845dd2b87c4441edb8e17c316ee2e7dd5683e41b3c89972a9a7db5d5089e",
+      "name": "Grebennikovius.png",
+      "originalFormat": "JPEG",
+      "file": "image.png",
+      "width": 896,
+      "height": 1200,
+      "projectId": 3,
+      "taskId": 22,
+      "sourceImageReference": "/label-studio/data/upload/2/cbcad09d-Grebennikovius.png",
+      "selectedAnnotationId": 10,
+      "annotations": [
+        {
+          "id": 9,
+          "updatedAt": "2026-10-08T09:19:51.668410Z",
+          "notes": [
+            "Integration demonstration only \u2014 SAM boundary is not reviewed; please refine before scientific use."
+          ],
+          "masks": [
+            {
+              "id": "project-3:task-22:annotation-9:sam_5a31f9ea86905528a646edb1fa8654c1_0",
+              "regionId": "sam_5a31f9ea86905528a646edb1fa8654c1_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000059",
+                "label": "pronotum",
+                "known": true
+              },
+              "file": "mask-e6c7d4b29bfeaf817ffb.png",
+              "color": "#36b9e5",
+              "name": "Demo pronotum \u2014 unreviewed boundary",
+              "side": [
+                "Midline"
+              ],
+              "pixels": 161772,
+              "bbox": [
+                183,
+                107,
+                719,
+                538
+              ],
+              "reviewStatus": "unspecified"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "updatedAt": "2026-10-08T13:51:02.780411Z",
+          "notes": [
+            "Integration demonstration only \u2014 SAM boundary is not reviewed; please refine before scientific use."
+          ],
+          "masks": [
+            {
+              "id": "project-3:task-22:annotation-10:sam_5a31f9ea86905528a646edb1fa8654c1_0",
+              "regionId": "sam_5a31f9ea86905528a646edb1fa8654c1_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000059",
+                "label": "pronotum",
+                "known": true
+              },
+              "file": "mask-2fb2e2b88d02611c21bb.png",
+              "color": "#36b9e5",
+              "name": "Demo pronotum \u2014 unreviewed boundary",
+              "side": [
+                "Midline"
+              ],
+              "pixels": 161772,
+              "bbox": [
+                183,
+                107,
+                719,
+                538
+              ],
+              "reviewStatus": "unspecified"
+            },
+            {
+              "id": "project-3:task-22:annotation-10:sam_833e647e41b35a7d858b253da3635358_0",
+              "regionId": "sam_833e647e41b35a7d858b253da3635358_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000037",
+                "label": "fore wing",
+                "known": true
+              },
+              "file": "mask-d312c6530c758f3cbb62.png",
+              "color": "#f2a541",
+              "name": "",
+              "side": [],
+              "pixels": 127690,
+              "bbox": [
+                422,
+                436,
+                760,
+                992
+              ],
+              "reviewStatus": "unspecified"
+            },
+            {
+              "id": "project-3:task-22:annotation-10:sam_3e38dd9242385f399830d187610f58d9_0",
+              "regionId": "sam_3e38dd9242385f399830d187610f58d9_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000034",
+                "label": "fore leg",
+                "known": true
+              },
+              "file": "mask-ca60e47567bec7dc2af3.png",
+              "color": "#ab78ef",
+              "name": "",
+              "side": [],
+              "pixels": 9318,
+              "bbox": [
+                110,
+                42,
+                216,
+                297
+              ],
+              "reviewStatus": "unspecified"
+            },
+            {
+              "id": "project-3:task-22:annotation-10:sam_0e0f67476e2d5fceb5b3a2d664bdb92f_0",
+              "regionId": "sam_0e0f67476e2d5fceb5b3a2d664bdb92f_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000035",
+                "label": "mid leg",
+                "known": true
+              },
+              "file": "mask-3fb511c3f0ff0c80f341.png",
+              "color": "#64d685",
+              "name": "",
+              "side": [],
+              "pixels": 13978,
+              "bbox": [
+                65,
+                542,
+                169,
+                909
+              ],
+              "reviewStatus": "unspecified"
+            },
+            {
+              "id": "project-3:task-22:annotation-10:sam_4b09b3968ce45150a494020e30ecefd6_0",
+              "regionId": "sam_4b09b3968ce45150a494020e30ecefd6_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000069",
+                "label": "metatibia",
+                "known": true
+              },
+              "file": "mask-c32bc8daa52c079eb701.png",
+              "color": "#ed7298",
+              "name": "",
+              "side": [],
+              "pixels": 3821,
+              "bbox": [
+                168,
+                817,
+                244,
+                903
+              ],
+              "reviewStatus": "unspecified"
+            },
+            {
+              "id": "project-3:task-22:annotation-10:sam_0c927775452354509c8d7bd130ff73bd_0",
+              "regionId": "sam_0c927775452354509c8d7bd130ff73bd_0",
+              "term": {
+                "iri": "http://purl.obolibrary.org/obo/AISM_0000059",
+                "label": "pronotum",
+                "known": true
+              },
+              "file": "mask-95fe19f41b310c9a983d.png",
+              "color": "#e6d34b",
+              "name": "",
+              "side": [],
+              "pixels": 118335,
+              "bbox": [
+                203,
+                215,
+                706,
+                505
+              ],
+              "reviewStatus": "unspecified"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

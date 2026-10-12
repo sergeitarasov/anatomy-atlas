@@ -18,6 +18,7 @@ public final class QueryEngine implements AutoCloseable {
     private final Map<String, Set<OWLEntity>> names = new HashMap<>();
     private final Map<IRI, String> labels = new HashMap<>();
     private final Map<IRI, String> definitions = new HashMap<>();
+    private final Map<IRI, Set<String>> synonyms = new HashMap<>();
     private final List<Map<String, Object>> terms;
     public final Map<String, Object> status;
 
@@ -35,6 +36,7 @@ public final class QueryEngine implements AutoCloseable {
                     for (OWLEntity entity : byIri.getOrDefault(iri, List.of())) addName(literal.getLiteral(), entity);
                     if (!labels.containsKey(iri) || literal.hasLang("en")) labels.put(iri, literal.getLiteral());
                 }
+                if (Set.of("hasExactSynonym", "hasRelatedSynonym", "hasBroadSynonym", "hasNarrowSynonym").contains(a.getProperty().getIRI().getShortForm())) synonyms.computeIfAbsent(iri, k -> new TreeSet<>()).add(literal.getLiteral());
                 if (a.getProperty().getIRI().toString().endsWith("IAO_0000115")) definitions.put(iri, literal.getLiteral());
             }
         }
@@ -91,11 +93,42 @@ public final class QueryEngine implements AutoCloseable {
         String iri = entity.getIRI().toString(), label = labels.getOrDefault(entity.getIRI(), entity.getIRI().getShortForm());
         return Map.of("iri", iri, "id", entity.getIRI().getShortForm().replaceFirst("_", ":"), "label", label,
             "kind", entity.isOWLClass() ? "class" : "property", "definition", definitions.getOrDefault(entity.getIRI(), ""),
-            "query", "<" + iri + ">");
+            "query", "<" + iri + ">", "synonyms", synonyms.getOrDefault(entity.getIRI(), Set.of()),
+            "expression", names.getOrDefault(label, Set.of()).size() == 1 ? "'" + label.replace("\\", "\\\\").replace("'", "\\'") + "'" : "<" + iri + ">");
     }
-    public List<Map<String, Object>> search(String text) {
-        String q = text.toLowerCase(Locale.ROOT);
-        return terms.stream().filter(t -> (t.get("label") + " " + t.get("id")).toLowerCase(Locale.ROOT).contains(q)).limit(50).toList();
+    public List<Map<String, Object>> search(String text) { return search(text, ""); }
+    public List<Map<String, Object>> search(String text, String kind) {
+        String q = text.toLowerCase(Locale.ROOT).trim();
+        return terms.stream().filter(t -> kind.isEmpty() || kind.equals(t.get("kind")))
+            .filter(t -> (t.get("label") + " " + t.get("id") + " " + t.get("iri") + " " + t.get("synonyms")).toLowerCase(Locale.ROOT).contains(q))
+            .sorted(Comparator.<Map<String,Object>>comparingInt(t -> ((String)t.get("label")).equalsIgnoreCase(q) ? 0 : ((String)t.get("label")).toLowerCase(Locale.ROOT).startsWith(q) ? 1 : 2)
+                .thenComparing(t -> (String)t.get("label"), String.CASE_INSENSITIVE_ORDER)).limit(30).toList();
+    }
+    public synchronized Map<String,Object> detail(String iri) {
+        OWLClass cls = resolve(iri, OWLClass.class);
+        OWLObjectProperty property = resolve(iri, OWLObjectProperty.class);
+        OWLEntity entity = cls != null ? cls : property;
+        if (entity == null) throw new IllegalArgumentException("Term not found in this ontology.");
+        Map<String,Object> detail = new LinkedHashMap<>(term(entity));
+        detail.put("source", status.get("version"));
+        if (cls != null) {
+            detail.put("parents", results(reasoner.getSuperClasses(cls, true).getFlattened(), false));
+            detail.put("children", results(reasoner.getSubClasses(cls, true).getFlattened(), false));
+            Set<OWLClassExpression> expressions = new HashSet<>();
+            for (OWLOntology o : ontology.getImportsClosure()) {
+                o.getSubClassAxiomsForSubClass(cls).forEach(a -> expressions.add(a.getSuperClass()));
+                o.getEquivalentClassesAxioms(cls).forEach(a -> expressions.addAll(a.getClassExpressionsMinus(cls)));
+            }
+            List<Map<String,Object>> relations = new ArrayList<>();
+            for (OWLClassExpression expression : expressions) collectRelations(expression, relations);
+            detail.put("relationships", relations.stream().distinct().toList());
+        }
+        return detail;
+    }
+    private void collectRelations(OWLClassExpression expression, List<Map<String,Object>> relations) {
+        if (expression instanceof OWLObjectIntersectionOf intersection) intersection.getOperands().forEach(e -> collectRelations(e, relations));
+        if (expression instanceof OWLObjectSomeValuesFrom restriction && !restriction.getProperty().isAnonymous() && !restriction.getFiller().isAnonymous())
+            relations.add(Map.of("property", term(restriction.getProperty().asOWLObjectProperty()), "target", term(restriction.getFiller().asOWLClass()), "quantifier", "some"));
     }
     private List<Map<String, Object>> results(Set<OWLClass> classes, boolean builtins) {
         return classes.stream().filter(c -> builtins || (!c.isOWLThing() && !c.isOWLNothing())).map(this::term)
@@ -125,6 +158,13 @@ public final class QueryEngine implements AutoCloseable {
         result.put("subclasses", results(reasoner.getSubClasses(parsed, direct).getFlattened(), builtins));
         result.put("superclasses", results(reasoner.getSuperClasses(parsed, direct).getFlattened(), builtins));
         result.put("equivalents", results(equivalents, builtins)); result.put("satisfiable", satisfiable);
+        // Image membership always includes all descendants and equivalent classes, never ancestors.
+        Set<OWLClass> imageMatches = new HashSet<>();
+        if (satisfiable) {
+            imageMatches.addAll(reasoner.getSubClasses(parsed, false).getFlattened());
+            imageMatches.addAll(equivalents);
+        }
+        result.put("imageMatches", results(imageMatches, false));
         result.put("elapsedMs", (System.nanoTime() - start) / 1_000_000);
         return result;
     }

@@ -15,7 +15,7 @@ public final class Server {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static volatile QueryEngine engine;
     private static volatile String loadError;
-    private static final Map<String, String> STATIC = Map.of("/", "index.html", "/app.js", "app.js", "/style.css", "style.css");
+    private static final Map<String, String> STATIC = Map.of("/", "index.html", "/app.js", "app.js", "/style.css", "style.css", "/images.html", "images.html", "/images.js", "images.js", "/images.css", "images.css", "/mask-viewer.js", "mask-viewer.js", "/mask-viewer.css", "mask-viewer.css");
     public static void main(String[] args) throws Exception {
         Path file = Path.of(args.length > 0 ? args[0] : "data/aism.owl");
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 8787;
@@ -40,7 +40,7 @@ public final class Server {
         try {
             x.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
             x.getResponseHeaders().set("Cache-Control", "no-store");
-            x.getResponseHeaders().set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'");
+            x.getResponseHeaders().set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'");
             String path = x.getRequestURI().getPath();
             String origin = x.getRequestHeaders().getFirst("Origin");
             String host = x.getRequestHeaders().getFirst("Host");
@@ -56,17 +56,26 @@ public final class Server {
                 json(x, 200, engine.query(request.path("expression").asText(), request.path("direct").asBoolean(false), request.path("builtins").asBoolean(false)));
             } else if (!x.getRequestMethod().equals("GET")) {
                 json(x, 405, Map.of("error", "Use GET."));
+            } else if (path.equals("/api/image-example")) {
+                String example = System.getenv("ATLAS_IMAGE_EXAMPLE");
+                if (example == null) { json(x, 404, Map.of("error", "No example package configured. Use Open atlas export.")); return; }
+                Path examplePath = Path.of(example);
+                if (Files.size(examplePath) > 150000000) { json(x, 413, Map.of("error", "Example is too large.")); return; }
+                json(x, 200, JSON.readTree(Files.readAllBytes(examplePath)));
             } else if (path.equals("/api/status")) {
                 json(x, 200, engine != null ? engine.status : Map.of("state", loadError == null ? "loading" : "error", "message", loadError == null ? "Loading and classifying AISM…" : loadError));
             } else if (path.equals("/api/terms")) {
-                String query = x.getRequestURI().getRawQuery();
-                String search = query != null && query.startsWith("q=") ? URLDecoder.decode(query.substring(2), "UTF-8") : "";
-                json(x, 200, engine == null ? List.of() : engine.search(search));
-            } else if (STATIC.containsKey(path)) {
-                String name = STATIC.get(path);
+                var params = parameters(x);
+                json(x, 200, engine == null ? List.of() : engine.search(params.getOrDefault("q", ""), params.getOrDefault("kind", "")));
+            } else if (path.equals("/api/term")) {
+                if (engine == null) { json(x, 503, Map.of("error", "Ontology is still loading.")); return; }
+                json(x, 200, engine.detail(parameters(x).getOrDefault("iri", "")));
+            } else if (STATIC.containsKey(path) || path.matches("/atlas/(manifest[.]json|image[.]png|mask-[a-f0-9]{20}[.]png)")) {
+                String name = STATIC.getOrDefault(path, path.substring(1));
                 try (InputStream stream = Server.class.getResourceAsStream("/web/" + name)) {
-                    byte[] data = Objects.requireNonNull(stream).readAllBytes();
-                    x.getResponseHeaders().set("Content-Type", name.endsWith(".js") ? "text/javascript; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/html; charset=utf-8");
+                    if (stream == null) { json(x, 404, Map.of("error", "Not found.")); return; }
+                    byte[] data = stream.readAllBytes();
+                    x.getResponseHeaders().set("Content-Type", name.endsWith(".png") ? "image/png" : name.endsWith(".json") ? "application/json; charset=utf-8" : name.endsWith(".js") ? "text/javascript; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/html; charset=utf-8");
                     x.sendResponseHeaders(200, data.length); x.getResponseBody().write(data);
                 }
             } else json(x, 404, Map.of("error", "Not found."));
@@ -75,6 +84,15 @@ public final class Server {
         } catch (Exception e) {
             e.printStackTrace(); json(x, 500, Map.of("error", "Query failed: " + e.getClass().getSimpleName() + ". See the server log."));
         } finally { x.close(); }
+    }
+    private static Map<String,String> parameters(HttpExchange x) {
+        Map<String,String> params = new HashMap<>();
+        String raw = x.getRequestURI().getRawQuery();
+        if (raw != null) for (String item : raw.split("&")) {
+            String[] pair = item.split("=",2);
+            params.put(URLDecoder.decode(pair[0], java.nio.charset.StandardCharsets.UTF_8), pair.length > 1 ? URLDecoder.decode(pair[1], java.nio.charset.StandardCharsets.UTF_8) : "");
+        }
+        return params;
     }
     private static void json(HttpExchange x, int status, Object body) throws IOException {
         byte[] bytes = JSON.writeValueAsBytes(body);
